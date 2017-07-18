@@ -510,6 +510,25 @@ var PRN = (function() {
 		return arr;
 	}
 
+	function find_sep(str/*:string*/, opts)/*:string*/ {
+		var o = opts || {};
+		var sep = "";
+		if (o.scanRows) {
+			var seps = [{s:"\t",c:0},{s:",",c:0}], S = seps.length;
+			var records = str.split(/[\n\r]+/), R = Math.min(records.length, (o.scanRows.count || 0));
+			if (o.scanRows.count && o.scanRows.count > 0) R = Math.min(o.scanRows.count, R);
+			for (var r = 0; r < R; r++) {
+				for (var s = 0; s < S; s++) {
+					var rs = records[r].split(seps[s].s).length;
+					seps[s].c += (rs > 1 ? rs : 0);
+				}
+			}
+			/* Reverse sort */
+			sep = seps.sort(function(l,r) { return r.c - l.c; })[0].s;
+		} else if(str.substr(0,1024).indexOf("\t") == -1) sep = ","; else sep = "\t";
+		return sep;
+	}
+
 	function dsv_to_sheet_str(str/*:string*/, opts)/*:Worksheet*/ {
 		var o = opts || {};
 		var sep = "";
@@ -519,7 +538,7 @@ var PRN = (function() {
 
 		/* known sep */
 		if(str.substr(0,4) == "sep=" && str.charCodeAt(5) == 10) { sep = str.charAt(4); str = str.substr(6); }
-		else if(str.substr(0,1024).indexOf("\t") == -1) sep = ","; else sep = "\t";
+		else sep = find_sep(str, o);
 		var R = 0, C = 0, v = 0;
 		var start = 0, end = 0, sepcc = sep.charCodeAt(0), instr = false, cc=0;
 		str = str.replace(/\r\n/mg, "\n");
