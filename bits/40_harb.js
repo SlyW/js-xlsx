@@ -514,14 +514,18 @@ var PRN = (function() {
 		var o = opts || {};
 		var sep = "";
 		if (o.scanRows) {
-			var seps = [{s:"\t",c:0},{s:",",c:0}], S = seps.length;
-			var records = str.split(/[\n\r]+/), R = Math.min(records.length, (o.scanRows.count || 0));
-			if (o.scanRows.count && o.scanRows.count > 0) R = Math.min(o.scanRows.count, R);
-			for (var r = 0; r < R; r++) {
-				for (var s = 0; s < S; s++) {
-					var rs = records[r].split(seps[s].s).length;
-					seps[s].c += (rs > 1 ? rs : 0);
+			var seps = [{s:"\t",cc:"\t".charCodeAt(0),c:0},{s:",",cc:",".charCodeAt(0),c:0}];
+			var end = 0, instr = false, r = 0, R = 0;
+			if (o.scanRows.count && o.scanRows.count > 0) R = o.scanRows.count;
+			for(;end < str.length;++end) {
+				switch((cc=str.charCodeAt(end))) {
+					case 0x22: instr = !instr; break;
+					case seps[0].cc: if(!instr) seps[0].c += 1
+					case seps[1].cc: if(!instr) seps[1].c += 1
+					case 0x0a: case 0x0d: if(!instr) r++; break;
+					default: break;
 				}
+				if (R>0 && r>R) break;
 			}
 			/* Reverse sort */
 			sep = seps.sort(function(l,r) { return r.c - l.c; })[0].s;
